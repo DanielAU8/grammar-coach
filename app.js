@@ -4,6 +4,7 @@
  */
 
 const STORAGE_KEY = "grammar-coach-v1";
+const ACCOUNTS_STORAGE_KEY = "grammar-coach-accounts-v1";
 const REVIEW_INTERVALS = [1, 3, 7, 14, 30];
 const TODAY = () => new Date().toISOString().slice(0, 10);
 
@@ -293,6 +294,7 @@ function baseState(mode = "fresh") {
     mistakes: [],
     reviews: {},
     profile: blankProfile(),
+    resetModal: false,
     practice: { mode: "mixed", queue: [], index: 0, score: 0, answered: false, lastAnswer: "", showChinese: false, completed: false, error: "" },
   };
 }
@@ -364,21 +366,79 @@ function makeAttemptWithCount(question, isCorrect, timestamp, isReview) {
 }
 function freshState() { return baseState("fresh"); }
 
-function loadState() {
-  try {
-    const saved = JSON.parse(localStorage.getItem(STORAGE_KEY) || "null");
-    if (saved && typeof saved === "object") return { ...baseState(saved.mode || "demo"), ...saved, profile: { ...blankProfile(), ...(saved.profile || {}) }, practice: { ...baseState().practice, ...(saved.practice || {}) } };
-  } catch (error) { /* Use demo mode when storage is unavailable or invalid. */ }
-  return createDemoState();
+function normaliseStudentState(saved, fallbackMode = "fresh", fallbackName = "Alex") {
+  const defaults = baseState(fallbackMode);
+  const source = saved && typeof saved === "object" ? saved : {};
+  return {
+    ...defaults,
+    ...source,
+    attempts: Array.isArray(source.attempts) ? source.attempts : [],
+    mistakes: Array.isArray(source.mistakes) ? source.mistakes : [],
+    reviews: source.reviews && typeof source.reviews === "object" ? source.reviews : {},
+    profile: { ...defaults.profile, ...(source.profile || {}), name: source.profile?.name || fallbackName },
+    practice: { ...defaults.practice, ...(source.practice || {}) },
+  };
 }
+function loadAccountStore() {
+  try {
+    const savedAccounts = JSON.parse(localStorage.getItem(ACCOUNTS_STORAGE_KEY) || "null");
+    if (savedAccounts?.accounts && typeof savedAccounts.accounts === "object") {
+      const accounts = Object.fromEntries(Object.entries(savedAccounts.accounts).map(([id, value]) => [id, normaliseStudentState(value, value?.mode || "fresh", value?.profile?.name || id)]));
+      const activeId = accounts[savedAccounts.activeId] ? savedAccounts.activeId : Object.keys(accounts)[0];
+      return { activeId, accounts };
+    }
+    const legacy = JSON.parse(localStorage.getItem(STORAGE_KEY) || "null");
+    const alex = legacy ? normaliseStudentState(legacy, legacy.mode || "demo", "Alex") : createDemoState();
+    const carina = freshState(); carina.profile.name = "Carina";
+    const george = freshState(); george.profile.name = "George";
+    return { activeId: "alex", accounts: { alex: alex, carina: carina, george: george } };
+  } catch (error) {
+    const alex = createDemoState();
+    const carina = freshState(); carina.profile.name = "Carina";
+    const george = freshState(); george.profile.name = "George";
+    return { activeId: "alex", accounts: { alex: alex, carina: carina, george: george } };
+  }
+}
+const accountStore = loadAccountStore();
+let activeAccountId = accountStore.activeId || "alex";
+let state = normaliseStudentState(accountStore.accounts[activeAccountId] || createDemoState(), "demo", "Alex");
 function saveState() {
   const payload = { ...state, practice: { ...state.practice, queue: state.practice.queue.slice(0, 10) } };
-  try { localStorage.setItem(STORAGE_KEY, JSON.stringify(payload)); } catch (error) { setSaveStatus("Saved for this session"); }
+  accountStore.activeId = activeAccountId;
+  accountStore.accounts[activeAccountId] = clone(payload);
+  try { localStorage.setItem(ACCOUNTS_STORAGE_KEY, JSON.stringify(accountStore)); } catch (error) { setSaveStatus("Saved for this session"); }
   setSaveStatus("Saved just now");
 }
 function setSaveStatus(text) {
   const target = document.querySelector("#save-status-text");
   if (target) target.textContent = text;
+}
+function accountOptions() {
+  return Object.entries(accountStore.accounts).map(([id, account]) => `<option value="${escapeHTML(id)}" ${id === activeAccountId ? "selected" : ""}>${escapeHTML(account.profile?.name || id)}</option>`).join("");
+}
+function switchAccount(accountId) {
+  if (!accountStore.accounts[accountId] || accountId === activeAccountId) return;
+  saveState();
+  activeAccountId = accountId;
+  const saved = accountStore.accounts[activeAccountId];
+  state = normaliseStudentState(saved, saved.mode || "fresh", saved.profile?.name || activeAccountId);
+  state.view = "home";
+  state.practice = baseState().practice;
+  saveState();
+  renderApp();
+}
+function addAccount() {
+  const name = window.prompt("Name for the new Grammar Coach account:");
+  if (!name || !name.trim()) return;
+  const cleanName = name.trim().slice(0, 24);
+  const baseId = slug(cleanName) || "student";
+  let accountId = baseId;
+  let number = 2;
+  while (accountStore.accounts[accountId]) { accountId = `${baseId}-${number}`; number += 1; }
+  const account = freshState();
+  account.profile.name = cleanName;
+  accountStore.accounts[accountId] = account;
+  switchAccount(accountId);
 }
 
 function getStats() {
@@ -513,6 +573,59 @@ function updateStreak() {
   state.profile.streak = difference === 1 ? state.profile.streak + 1 : 1;
   state.profile.lastActiveDate = today;
 }
+function rebuildReviewSchedules() {
+  state.reviews = {};
+  [...state.attempts].sort((a, b) => new Date(a.timestamp) - new Date(b.timestamp)).forEach((attempt) => {
+    const key = skillKey(attempt.topic, attempt.subSkill);
+    const current = state.reviews[key] || { intervalIndex: -1, nextReview: TODAY(), consecutiveCorrect: 0, lastReviewed: null };
+    if (attempt.isCorrect) {
+      current.intervalIndex = Math.min(REVIEW_INTERVALS.length - 1, current.intervalIndex + 1);
+      current.consecutiveCorrect += 1;
+    } else {
+      current.intervalIndex = Math.max(0, current.intervalIndex - 1);
+      current.consecutiveCorrect = 0;
+    }
+    const next = new Date(attempt.timestamp);
+    next.setDate(next.getDate() + (attempt.isCorrect ? REVIEW_INTERVALS[Math.max(0, current.intervalIndex)] : 1));
+    current.nextReview = next.toISOString().slice(0, 10);
+    current.lastReviewed = attempt.timestamp;
+    state.reviews[key] = current;
+  });
+}
+function streakFromAttempts() {
+  const dates = [...new Set(state.attempts.map((attempt) => attempt.timestamp.slice(0, 10)))].sort();
+  if (!dates.length) return 0;
+  let streak = 1;
+  for (let index = dates.length - 1; index > 0; index -= 1) {
+    const later = new Date(`${dates[index]}T00:00:00`);
+    const earlier = new Date(`${dates[index - 1]}T00:00:00`);
+    if (Math.round((later - earlier) / 86400000) !== 1) break;
+    streak += 1;
+  }
+  return streak;
+}
+function recalculateXP() {
+  const answerXP = state.attempts.filter((attempt) => attempt.isCorrect).length * 10;
+  const practiceBonuses = Math.floor(state.attempts.length / 10) * 50;
+  const lessonXP = (state.profile.lessonsCompleted || 0) * 50;
+  state.profile.xp = answerXP + practiceBonuses + lessonXP;
+}
+function resetRecentProgress(requestedCount) {
+  const count = Math.min(Math.max(0, Number(requestedCount) || 0), state.attempts.length);
+  if (!count) { state.resetModal = false; renderApp(); return; }
+  const removed = state.attempts.splice(-count, count);
+  const removedIds = new Set(removed.map((attempt) => `${attempt.questionId}::${attempt.timestamp}`));
+  state.mistakes = state.mistakes.filter((mistake) => !removedIds.has(`${mistake.questionId}::${mistake.timestamp}`));
+  rebuildReviewSchedules();
+  recalculateXP();
+  state.profile.streak = streakFromAttempts();
+  state.profile.lastActiveDate = state.attempts.length ? state.attempts[state.attempts.length - 1].timestamp.slice(0, 10) : null;
+  state.practice = baseState().practice;
+  state.resetModal = false;
+  state.view = "home";
+  saveState();
+  renderApp();
+}
 function nextPracticeQuestion() {
   if (!state.practice.answered) return;
   if (state.practice.index >= state.practice.queue.length - 1) { state.practice.completed = true; state.profile.xp += sessionBonus(); saveState(); renderApp(); return; }
@@ -528,6 +641,12 @@ const navItems = [
   ["home", "Home"], ["learn", "Learn"], ["practice", "Practice"], ["weak", "Weak Areas"], ["mistakes", "Mistake Book"], ["review", "Review"], ["progress", "Progress"], ["report", "Weekly Report"],
 ];
 
+function resetDialog() {
+  if (!state.resetModal) return "";
+  const attempts = state.attempts.length;
+  return `<div class="modal-backdrop"><section class="reset-modal" role="dialog" aria-modal="true" aria-labelledby="reset-title"><button class="modal-close" aria-label="Close reset options" data-action="close-reset">×</button><p class="kicker">Safety first</p><h2 id="reset-title">How much progress should we reset?</h2><p>Choose only the most recent answers. Older learning records, mistakes and review history will stay safe.</p><div class="reset-options"><button class="reset-option" data-action="reset-recent" data-count="1" ${attempts < 1 ? "disabled" : ""}><strong>Last 1 answer</strong><span>Remove the latest question</span></button><button class="reset-option" data-action="reset-recent" data-count="5" ${attempts < 5 ? "disabled" : ""}><strong>Last 5 answers</strong><span>Remove the latest short set</span></button><button class="reset-option" data-action="reset-recent" data-count="10" ${attempts < 10 ? "disabled" : ""}><strong>Last 10 answers</strong><span>Remove the latest practice session</span></button><button class="reset-option is-danger" data-action="reset-recent" data-count="all" ${attempts < 1 ? "disabled" : ""}><strong>Reset all progress</strong><span>Requires one more confirmation</span></button></div><p class="modal-footnote">This changes only the <strong>${escapeHTML(state.profile.name || "current")}</strong> account. Other accounts are not affected.</p></section></div>`;
+}
+
 function layout() {
   const topic = getTopic(state.profile.lastLessonTopic || state.selectedTopic);
   return `<div class="app-frame" id="app-frame">
@@ -542,10 +661,10 @@ function layout() {
       </div>
     </aside>
     <div class="main-area">
-      <header class="topbar"><div class="topbar-context"><button class="mobile-menu" data-action="toggle-sidebar" aria-label="Open navigation">☰</button><span>Grammar Coach</span><span aria-hidden="true">/</span><strong>${escapeHTML(navItems.find(([id]) => id === state.view)?.[1] || "Home")}</strong></div><div class="topbar-right"><span class="save-status"><span class="save-dot"></span><span id="save-status-text">Saved just now</span></span><div class="profile-chip"><span class="avatar">${escapeHTML((state.profile.name || "A").slice(0, 1).toUpperCase())}</span><span>${escapeHTML(state.profile.name || "Alex")}</span></div></div></header>
+      <header class="topbar"><div class="topbar-context"><button class="mobile-menu" data-action="toggle-sidebar" aria-label="Open navigation">☰</button><span>Grammar Coach</span><span aria-hidden="true">/</span><strong>${escapeHTML(navItems.find(([id]) => id === state.view)?.[1] || "Home")}</strong></div><div class="topbar-right"><span class="save-status"><span class="save-dot"></span><span id="save-status-text">Saved just now</span></span><div class="profile-chip"><span class="avatar">${escapeHTML((state.profile.name || "A").slice(0, 1).toUpperCase())}</span><label class="account-select-label" for="account-switcher">Account</label><select class="account-select" id="account-switcher" aria-label="Switch student account">${accountOptions()}</select><button class="add-account" data-action="add-account" aria-label="Add another account">＋</button></div></div></header>
       <main id="main-content" class="main-content"></main>
     </div>
-  </div>`;
+  </div>${resetDialog()}`;
 }
 
 function pageIntro(kicker, title, description, action = "") {
@@ -643,7 +762,6 @@ function renderApp() {
   main.innerHTML = (views[state.view] || renderHome)();
 }
 
-const state = loadState();
 const app = document.querySelector("#app");
 app.addEventListener("click", (event) => {
   const target = event.target.closest("[data-nav], [data-action]");
@@ -657,8 +775,11 @@ app.addEventListener("click", (event) => {
   event.preventDefault();
   if (nav) { state.view = nav; document.querySelector("#app-frame")?.classList.remove("sidebar-open"); if (nav === "learn" && !state.selectedTopic) state.selectedTopic = "subject-verb"; renderApp(); return; }
   if (action === "toggle-sidebar") { document.querySelector("#app-frame")?.classList.toggle("sidebar-open"); return; }
-  if (action === "mode") { const nextMode = target.dataset.mode; Object.assign(state, nextMode === "demo" ? createDemoState() : freshState()); state.mode = nextMode; saveState(); renderApp(); return; }
-  if (action === "reset-progress") { if (window.confirm("Reset all Grammar Coach progress in this browser?")) { Object.assign(state, freshState()); saveState(); renderApp(); } return; }
+  if (action === "mode") { const nextMode = target.dataset.mode; const nextState = nextMode === "demo" ? createDemoState() : freshState(); nextState.profile.name = state.profile.name; state = nextState; state.mode = nextMode; saveState(); renderApp(); return; }
+  if (action === "add-account") { addAccount(); return; }
+  if (action === "reset-progress") { state.resetModal = true; renderApp(); return; }
+  if (action === "close-reset") { state.resetModal = false; renderApp(); return; }
+  if (action === "reset-recent") { const count = target.dataset.count; if (count === "all") { if (window.confirm(`Reset all progress for ${state.profile.name || "this account"}? This cannot be undone.`)) resetRecentProgress(state.attempts.length); } else resetRecentProgress(Number(count)); return; }
   if (action === "start-weak") { beginPractice("weak"); return; }
   if (action === "start-practice") { beginPractice("mixed"); return; }
   if (action === "start-review") { beginPractice("review"); return; }
@@ -671,5 +792,6 @@ app.addEventListener("click", (event) => {
   if (action === "toggle-chinese") { state.practice.showChinese = !state.practice.showChinese; renderApp(); return; }
   if (action === "review-mistake") { const mistake = state.mistakes.find((item) => item.id === target.dataset.id); if (mistake) { mistake.reviewed = true; saveState(); renderApp(); } }
 });
+app.addEventListener("change", (event) => { if (event.target.matches("#account-switcher")) switchAccount(event.target.value); });
 app.addEventListener("submit", (event) => { if (event.target.matches("#question-form")) { event.preventDefault(); submitAnswer(event.target); } });
 renderApp();
