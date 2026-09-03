@@ -18,4 +18,4 @@ Then open <http://localhost:4173>.
 - `styles.css` — responsive visual system.
 - `app.js` — curriculum, generated question bank, analytics, storage abstraction, and UI interactions.
 
-Progress is stored in `localStorage` under `grammar-coach-v1`. The data layer is isolated behind `loadState`, `saveState`, and the analytics functions so it can be replaced by a remote store later.
+Progress is stored in `localStorage` under `grammar-coach-accounts-v1`. The built-in Alex, Carina and George accounts have separate attempts, mistakes, reviews and XP. Use the account selector in the top bar to switch students, or the plus button to add another name. Reset Progress now offers the latest 1, 5 or 10 answers; resetting all progress requires a second confirmation and only affects the current account.
