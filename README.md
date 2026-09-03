@@ -19,3 +19,11 @@ Then open <http://localhost:4173>.
 - `app.js` — curriculum, generated question bank, analytics, storage abstraction, and UI interactions.
 
 Progress is stored in `localStorage` under `grammar-coach-accounts-v1`. The built-in George, Carina and Daniel accounts have separate attempts, mistakes, reviews and XP. Use the account selector in the top bar to switch students, or the plus button to add another name. Reset Progress now offers the latest 1, 5 or 10 answers; resetting all progress requires a second confirmation and only affects the current account.
+
+## Publish with GitHub Pages
+
+The repository includes `.github/workflows/pages.yml`. After pushing it to GitHub, open the repository's **Settings → Pages**, choose **GitHub Actions** if GitHub asks for a source, and wait for the workflow to finish. The family can then use the Pages URL shown in the workflow deployment, usually:
+
+```text
+https://YOUR-GITHUB-NAME.github.io/REPOSITORY-NAME/
+```
