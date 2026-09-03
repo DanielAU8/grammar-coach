@@ -348,7 +348,7 @@ function baseState(mode = "fresh") {
     reviews: {},
     profile: blankProfile(),
     resetModal: false,
-    practice: { mode: "mixed", queue: [], index: 0, score: 0, answered: false, lastAnswer: "", showChinese: false, completed: false, error: "" },
+    practice: { mode: "mixed", queue: [], index: 0, score: 0, answered: false, lastAnswer: "", showChinese: false, completed: false, error: "", sessionAnswers: [] },
   };
 }
 
@@ -429,7 +429,7 @@ function normaliseStudentState(saved, fallbackMode = "fresh", fallbackName = "Ge
     mistakes: Array.isArray(source.mistakes) ? source.mistakes : [],
     reviews: source.reviews && typeof source.reviews === "object" ? source.reviews : {},
     profile: { ...defaults.profile, ...(source.profile || {}), name: source.profile?.name || fallbackName },
-    practice: { ...defaults.practice, ...(source.practice || {}) },
+    practice: { ...defaults.practice, ...(source.practice || {}), sessionAnswers: Array.isArray(source.practice?.sessionAnswers) ? source.practice.sessionAnswers : [] },
   };
 }
 function loadAccountStore() {
@@ -563,7 +563,7 @@ function updateReviewSchedule(attempt) {
 function dueReviews() {
   return getStats().filter((stat) => stat.attempts > 0 && state.reviews[stat.key] && state.reviews[stat.key].nextReview <= TODAY()).sort((a, b) => b.weakness - a.weakness);
 }
-function selectQuestions(mode, topicId = null, skill = null) {
+function selectQuestions(mode, topicId = null, skill = null, questionCount = 10, excludeIds = []) {
   let pool = questionBank;
   if (skill) pool = pool.filter((question) => skillKey(question.topic, question.subSkill) === skill);
   else if (topicId) pool = pool.filter((question) => question.topic === topicId);
@@ -572,15 +572,48 @@ function selectQuestions(mode, topicId = null, skill = null) {
     pool = pool.filter((question) => keys.includes(skillKey(question.topic, question.subSkill)));
   }
   if (!pool.length) pool = questionBank;
+  const excluded = new Set(excludeIds);
   const recentIds = new Set(state.attempts.slice(-18).map((attempt) => attempt.questionId));
-  pool = [...pool].sort((a, b) => Number(recentIds.has(a.id)) - Number(recentIds.has(b.id)));
-  return pool.slice(0, 10).map((question) => question.id);
+  const ordered = [...pool].sort((a, b) => Number(recentIds.has(a.id)) - Number(recentIds.has(b.id)) || a.id.localeCompare(b.id));
+  const fresh = ordered.filter((question) => !excluded.has(question.id));
+  const fallback = ordered.filter((question) => excluded.has(question.id));
+  return [...fresh, ...fallback].slice(0, questionCount).map((question) => question.id);
 }
-function beginPractice(mode = "mixed", topicId = null, skill = null, questionCount = 10) {
-  state.practice = { mode, queue: selectQuestions(mode, topicId, skill).slice(0, questionCount), index: 0, score: 0, answered: false, lastAnswer: "", showChinese: false, completed: false, error: "" };
+
+function beginPracticeQueue(mode, queue) {
+  const uniqueQueue = [...new Set(queue)].filter((questionId) => questionBank.some((question) => question.id === questionId)).slice(0, 10);
+  state.practice = { ...baseState().practice, mode, queue: uniqueQueue, sessionAnswers: [] };
   state.view = "practice";
   saveState();
   renderApp();
+}
+function beginPractice(mode = "mixed", topicId = null, skill = null, questionCount = 10, excludeIds = []) {
+  beginPracticeQueue(mode, selectQuestions(mode, topicId, skill, questionCount, excludeIds));
+}
+function sessionWrongAnswers() {
+  return (state.practice.sessionAnswers || []).filter((answer) => !answer.isCorrect);
+}
+function selectSimilarQuestions(wrongAnswers, questionCount = 5) {
+  const wrongQuestionIds = new Set(wrongAnswers.map((answer) => answer.questionId));
+  const skills = [...new Set(wrongAnswers.map((answer) => {
+    const question = questionBank.find((item) => item.id === answer.questionId);
+    return question ? skillKey(question.topic, question.subSkill) : null;
+  }).filter(Boolean))];
+  if (!skills.length) return selectQuestions("weak", null, null, questionCount);
+  const groups = skills.map((skill) => selectQuestions("skill", null, skill, 10, wrongQuestionIds));
+  const similar = [];
+  for (let index = 0; similar.length < questionCount; index += 1) {
+    let added = false;
+    groups.forEach((group) => {
+      const questionId = group[index];
+      if (questionId && !similar.includes(questionId) && similar.length < questionCount) {
+        similar.push(questionId);
+        added = true;
+      }
+    });
+    if (!added) break;
+  }
+  return similar;
 }
 function currentQuestion() { return questionBank.find((question) => question.id === state.practice.queue[state.practice.index]); }
 
@@ -619,6 +652,7 @@ function submitAnswer(form) {
   updateStreak();
   const answered = attemptsToday();
   if (answered > 0 && answered % 10 === 0) state.profile.xp += 50;
+  state.practice.sessionAnswers.push({ questionId: question.id, timestamp: attempt.timestamp, isCorrect });
   state.practice.answered = true;
   state.practice.lastAnswer = answer;
   state.practice.error = "";
@@ -758,17 +792,30 @@ function renderQuestionInput(question) {
   const placeholder = question.questionType === "fill-blank" ? "Type the missing word or words…" : "Type the corrected sentence…";
   return `<div class="question-form"><input class="answer-input" name="answer" type="text" autocomplete="off" placeholder="${placeholder}" value="${state.practice.answered ? escapeHTML(state.practice.lastAnswer) : ""}" ${state.practice.answered ? "disabled" : ""}></div>`;
 }
+function practiceModeLabel(mode) {
+  if (mode === "weak") return "Targeted practice";
+  if (mode === "review") return "Spaced review";
+  if (mode === "retry") return "Retry incorrect answers";
+  if (mode === "similar") return "Similar practice";
+  return "Practice";
+}
+function renderCompletionNextSteps() {
+  const wrongAnswers = sessionWrongAnswers();
+  if (!wrongAnswers.length) return `<div class="completion-actions"><button class="button button-primary" data-nav="home">Back to home</button><button class="button button-soft" data-action="start-weak">Practise weak areas</button></div>`;
+  const count = wrongAnswers.length;
+  return `<div class="completion-next"><p class="kicker">Choose your next step</p><h3>Turn these mistakes into progress.</h3><p>You can see the exact answers again, or practise the same skills with new questions.</p><div class="completion-choice-grid"><button class="completion-choice" data-action="retry-mistakes"><strong>Redo ${count} incorrect ${count === 1 ? "answer" : "answers"}</strong><span>See the same ${count === 1 ? "question" : "questions"} again and check your understanding.</span></button><button class="completion-choice" data-action="similar-mistakes"><strong>Practise 5 similar questions</strong><span>New questions on the same grammar skills, so the rule sticks.</span></button></div><div class="completion-actions"><button class="button button-ghost" data-nav="home">Back to home</button></div></div>`;
+}
 function renderPractice() {
   if (!state.practice.queue.length) beginPractice("mixed");
-  if (state.practice.completed) return `${pageIntro("Practice complete", "Nice work — you showed up for your grammar.", `You answered ${state.practice.queue.length} questions and earned ${state.practice.score * 10 + sessionBonus()} XP from this session.`)}<section class="completion-card"><div class="completion-icon">✓</div><h2>Session finished</h2><p>Your next review is already being scheduled from the answers you gave.</p><div class="completion-stats"><div><strong>${state.practice.score}/${state.practice.queue.length}</strong><span>correct</span></div><div><strong>+${state.practice.score * 10 + sessionBonus()}</strong><span>XP earned</span></div><div><strong>${overallAccuracy()}%</strong><span>overall accuracy</span></div></div><button class="button button-primary" data-nav="home">Back to home</button> <button class="button button-soft" data-action="start-weak">Practise weak areas again</button></section>`;
+  if (state.practice.completed) return `${pageIntro("Practice complete", "Nice work — you showed up for your grammar.", `You answered ${state.practice.queue.length} questions and earned ${state.practice.score * 10 + sessionBonus()} XP from this session.`)}<section class="completion-card"><div class="completion-icon">✓</div><h2>Session finished</h2><p>Your next review is already being scheduled from the answers you gave.</p><div class="completion-stats"><div><strong>${state.practice.score}/${state.practice.queue.length}</strong><span>correct</span></div><div><strong>+${state.practice.score * 10 + sessionBonus()}</strong><span>XP earned</span></div><div><strong>${overallAccuracy()}%</strong><span>overall accuracy</span></div></div>${renderCompletionNextSteps()}</section>`;
   const question = currentQuestion();
   if (!question) { state.practice.completed = true; return renderPractice(); }
   const topic = getTopic(question.topic);
-  return `<div class="practice-shell">${pageIntro(state.practice.mode === "weak" ? "Targeted practice" : state.practice.mode === "review" ? "Spaced review" : "Practice", `${topic.title}`, `Question ${state.practice.index + 1} of ${state.practice.queue.length} · ${question.subSkill}`)}<div class="practice-header"><div class="practice-progress"><strong>${state.practice.score}</strong> correct so far</div><span class="tag orange">${question.questionType === "multiple-choice" ? "Multiple choice" : question.questionType === "fill-blank" ? "Fill in the blank" : "Correct the sentence"}</span></div><section class="question-card"><div class="question-meta"><span class="tag">${question.subSkill}</span><span class="tag neutral">${question.difficulty}</span><span class="tag neutral">${question.yearLevel}</span></div><h2>${escapeHTML(question.prompt)}</h2><form id="question-form" data-action="submit-answer">${renderQuestionInput(question)}<div class="question-footer"><span class="hint">Take your time — accuracy matters more than speed.</span>${state.practice.answered ? `<button class="button button-dark" type="button" data-action="next-question">${state.practice.index === state.practice.queue.length - 1 ? "Finish session" : "Next question"} <span aria-hidden="true">→</span></button>` : `<button class="button button-primary" type="submit">Check answer <span aria-hidden="true">→</span></button>`}</div>${state.practice.error ? `<p class="feedback is-wrong" style="margin-bottom:0;padding:11px;font-size:12px;">${state.practice.error}</p>` : ""}</form>${state.practice.answered ? renderFeedback(question) : ""}</section></div>`;
+  return `<div class="practice-shell">${pageIntro(practiceModeLabel(state.practice.mode), `${topic.title}`, `Question ${state.practice.index + 1} of ${state.practice.queue.length} · ${question.subSkill}`)}<div class="practice-header"><div class="practice-progress"><strong>${state.practice.score}</strong> correct so far</div><span class="tag orange">${question.questionType === "multiple-choice" ? "Multiple choice" : question.questionType === "fill-blank" ? "Fill in the blank" : "Correct the sentence"}</span></div><section class="question-card"><div class="question-meta"><span class="tag">${question.subSkill}</span><span class="tag neutral">${question.difficulty}</span><span class="tag neutral">${question.yearLevel}</span></div><h2>${escapeHTML(question.prompt)}</h2><form id="question-form" data-action="submit-answer">${renderQuestionInput(question)}<div class="question-footer"><span class="hint">Take your time — accuracy matters more than speed.</span>${state.practice.answered ? `<button class="button button-dark" type="button" data-action="next-question">${state.practice.index === state.practice.queue.length - 1 ? "Finish session" : "Next question"} <span aria-hidden="true">→</span></button>` : `<button class="button button-primary" type="submit">Check answer <span aria-hidden="true">→</span></button>`}</div>${state.practice.error ? `<p class="feedback is-wrong" style="margin-bottom:0;padding:11px;font-size:12px;">${state.practice.error}</p>` : ""}</form>${state.practice.answered ? renderFeedback(question) : ""}</section></div>`;
 }
 function renderFeedback(question) {
   const correct = normalise(state.practice.lastAnswer) === normalise(question.correctAnswer);
-  return `<div class="feedback ${correct ? "is-correct" : "is-wrong"}"><div class="feedback-heading"><h3>${correct ? "Correct — nice thinking." : "Not quite yet. Now you know why."}</h3><span class="status-pill ${correct ? "strong" : "priority"}">${correct ? "+10 XP" : "Learn from this"}</span></div><p>${escapeHTML(question.explanation)}</p><div class="feedback-details"><div class="feedback-detail"><span>Your answer</span><strong>${escapeHTML(state.practice.lastAnswer)}</strong></div><div class="feedback-detail"><span>Correct answer</span><strong>${escapeHTML(question.correctAnswer)}</strong></div></div><div class="feedback-actions"><button class="button button-soft button-small" type="button" data-action="try-similar" data-skill="${skillKey(question.topic, question.subSkill)}">Try similar question</button><button class="button button-ghost button-small" type="button" data-action="toggle-chinese">${state.practice.showChinese ? "Hide 中文解释" : "中文解释"}</button></div>${state.practice.showChinese ? `<p class="chinese-note">${escapeHTML(question.chineseExplanation)}</p>` : ""}</div>`;
+  return `<div class="feedback ${correct ? "is-correct" : "is-wrong"}"><div class="feedback-heading"><h3>${correct ? "Correct — nice thinking." : "Not quite yet. Now you know why."}</h3><span class="status-pill ${correct ? "strong" : "priority"}">${correct ? "+10 XP" : "Learn from this"}</span></div><p>${escapeHTML(question.explanation)}</p><div class="feedback-details"><div class="feedback-detail"><span>Your answer</span><strong>${escapeHTML(state.practice.lastAnswer)}</strong></div><div class="feedback-detail"><span>Correct answer</span><strong>${escapeHTML(question.correctAnswer)}</strong></div></div><div class="feedback-actions"><button class="button button-soft button-small" type="button" data-action="try-similar" data-skill="${skillKey(question.topic, question.subSkill)}" data-question-id="${question.id}">Try similar questions · 5 new</button><button class="button button-ghost button-small" type="button" data-action="toggle-chinese">${state.practice.showChinese ? "Hide 中文解释" : "中文解释"}</button></div>${state.practice.showChinese ? `<p class="chinese-note">${escapeHTML(question.chineseExplanation)}</p>` : ""}</div>`;
 }
 
 function renderWeakAreas() {
@@ -778,7 +825,7 @@ function renderWeakAreas() {
 }
 
 function renderMistakes() {
-  return `${pageIntro("Your learning notes", "The Mistake Book.", "Every wrong answer becomes a useful note: what you chose, what works, and why. Mark a note reviewed when the rule feels clear.")}${state.mistakes.length ? `<div class="mistake-list">${state.mistakes.map((mistake) => `<article class="mistake-card ${mistake.reviewed ? "is-reviewed" : ""}"><div class="mistake-heading"><div><p class="kicker">${escapeHTML(getTopic(mistake.topic).title)} · ${escapeHTML(mistake.subSkill)}</p><h3>${escapeHTML(mistake.prompt)}</h3></div>${mistake.reviewed ? `<span class="review-check">✓ Reviewed</span>` : `<span class="status-pill priority">Needs a retry</span>`}</div><div class="mistake-question">${escapeHTML(mistake.prompt)}</div><div class="mistake-meta"><span>Your answer: <strong>${escapeHTML(mistake.userAnswer)}</strong></span><span>Correct: <strong>${escapeHTML(mistake.correctAnswer)}</strong></span><span>${new Date(mistake.timestamp).toLocaleDateString("en-AU", { day: "numeric", month: "short" })}</span><span>${mistake.previousMistakes || 0} previous on this skill</span></div><p class="mistake-explanation">${escapeHTML(mistake.explanation)}</p><div class="mistake-actions"><button class="button button-soft button-small" data-action="retry-mistake" data-skill="${skillKey(mistake.topic, mistake.subSkill)}">Try again</button><button class="button button-ghost button-small" data-action="practice-skill" data-skill="${skillKey(mistake.topic, mistake.subSkill)}">Practise this skill</button>${mistake.reviewed ? "" : `<button class="button button-ghost button-small" data-action="review-mistake" data-id="${escapeHTML(mistake.id)}">Mark reviewed</button>`}</div></article>`).join("")}</div>` : `<section class="card empty-state"><strong>Your Mistake Book is empty.</strong><span>That is a good thing. Try a practice question and your notes will appear here when you need them.</span></section>`}`;
+  return `${pageIntro("Your learning notes", "The Mistake Book.", "Every wrong answer becomes a useful note: what you chose, what works, and why. Mark a note reviewed when the rule feels clear.")}${state.mistakes.length ? `<div class="mistake-list">${state.mistakes.map((mistake) => `<article class="mistake-card ${mistake.reviewed ? "is-reviewed" : ""}"><div class="mistake-heading"><div><p class="kicker">${escapeHTML(getTopic(mistake.topic).title)} · ${escapeHTML(mistake.subSkill)}</p><h3>${escapeHTML(mistake.prompt)}</h3></div>${mistake.reviewed ? `<span class="review-check">✓ Reviewed</span>` : `<span class="status-pill priority">Needs a retry</span>`}</div><div class="mistake-question">${escapeHTML(mistake.prompt)}</div><div class="mistake-meta"><span>Your answer: <strong>${escapeHTML(mistake.userAnswer)}</strong></span><span>Correct: <strong>${escapeHTML(mistake.correctAnswer)}</strong></span><span>${new Date(mistake.timestamp).toLocaleDateString("en-AU", { day: "numeric", month: "short" })}</span><span>${mistake.previousMistakes || 0} previous on this skill</span></div><p class="mistake-explanation">${escapeHTML(mistake.explanation)}</p><div class="mistake-actions"><button class="button button-soft button-small" data-action="retry-mistake" data-question-id="${mistake.questionId}">Try again</button><button class="button button-ghost button-small" data-action="practice-skill" data-skill="${skillKey(mistake.topic, mistake.subSkill)}">Practise this skill · 5 new</button>${mistake.reviewed ? "" : `<button class="button button-ghost button-small" data-action="review-mistake" data-id="${escapeHTML(mistake.id)}">Mark reviewed</button>`}</div></article>`).join("")}</div>` : `<section class="card empty-state"><strong>Your Mistake Book is empty.</strong><span>That is a good thing. Try a practice question and your notes will appear here when you need them.</span></section>`}`;
 }
 
 function renderReview() {
@@ -841,14 +888,18 @@ app.addEventListener("click", (event) => {
   if (action === "close-reset") { state.resetModal = false; renderApp(); return; }
   if (action === "reset-recent") { const count = target.dataset.count; if (count === "all") { if (window.confirm(`Reset all progress for ${state.profile.name || "this account"}? This cannot be undone.`)) resetRecentProgress(state.attempts.length); } else resetRecentProgress(Number(count)); return; }
   if (action === "start-weak") { beginPractice("weak"); return; }
+  if (action === "retry-mistakes") { beginPracticeQueue("retry", sessionWrongAnswers().map((answer) => answer.questionId)); return; }
+  if (action === "similar-mistakes") { beginPracticeQueue("similar", selectSimilarQuestions(sessionWrongAnswers(), 5)); return; }
   if (action === "start-practice") { beginPractice("mixed"); return; }
   if (action === "start-review") { beginPractice("review"); return; }
   if (action === "start-topic") { const quick = target.dataset.mode === "quick"; beginPractice(quick ? "quick" : "topic", target.dataset.topic, null, quick ? 1 : 10); return; }
   if (action === "select-topic") { state.selectedTopic = target.dataset.topic; saveState(); renderApp(); return; }
   if (action === "learn-topic") { state.selectedTopic = target.dataset.topic; state.view = "learn"; saveState(); renderApp(); return; }
-  if (action === "practice-skill" || action === "retry-mistake" || action === "review-skill") { beginPractice(action === "review-skill" ? "review" : "skill", null, target.dataset.skill); return; }
+  if (action === "practice-skill") { beginPractice("skill", null, target.dataset.skill, 5, state.mistakes.filter((mistake) => skillKey(mistake.topic, mistake.subSkill) === target.dataset.skill).map((mistake) => mistake.questionId)); return; }
+  if (action === "retry-mistake") { beginPracticeQueue("retry", [target.dataset.questionId]); return; }
+  if (action === "review-skill") { beginPractice("review", null, target.dataset.skill); return; }
   if (action === "next-question") { nextPracticeQuestion(); return; }
-  if (action === "try-similar") { beginPractice("skill", null, target.dataset.skill); return; }
+  if (action === "try-similar") { beginPractice("similar", null, target.dataset.skill, 5, [target.dataset.questionId]); return; }
   if (action === "toggle-chinese") { state.practice.showChinese = !state.practice.showChinese; renderApp(); return; }
   if (action === "review-mistake") { const mistake = state.mistakes.find((item) => item.id === target.dataset.id); if (mistake) { mistake.reviewed = true; saveState(); renderApp(); } }
 });
