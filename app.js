@@ -91,15 +91,23 @@ const questionPools = {
       ["Neither of the answers ___ correct.", ["are", "were", "be", "is"], "is", "Neither is treated as singular here, so use is."],
       ["There ___ two pencils in the case.", ["is", "was", "are", "has"], "are", "The real subject is two pencils, so use the plural verb are."],
       ["The news ___ surprising today.", ["are", "were", "be", "is"], "is", "News looks plural but is usually an uncountable singular noun: the news is."],
+      ["The group of hikers ___ ready to leave.", ["are", "is", "be", "were"], "is", "The subject is group, which is singular, so use is."],
+      ["Both of the windows ___ open.", ["is", "are", "was", "be"], "are", "Both refers to two windows, so use the plural verb are."],
+      ["A box of old photos ___ under the bed.", ["are", "is", "were", "be"], "is", "The subject is box, not photos. Box is singular, so use is."],
     ],
     fill: [
       ["The dog ___ (chase) the ball every morning.", "chases", "Dog is singular, so chase takes -s: chases."],
       ["My sister and I ___ (enjoy) science.", "enjoy", "Sister and I makes a plural subject, so use enjoy."],
       ["Each player ___ (bring) a water bottle.", "brings", "Each is singular, so the verb needs -s: brings."],
+      ["The players ___ (need) new uniforms.", "need", "Players is plural, so use need without -s."],
+      ["Every one of the rooms ___ (have) a window.", "has", "Every one is singular, so use has."],
+      ["The list of ingredients ___ (include) three eggs.", "includes", "The subject is list, which is singular, so use includes."],
     ],
     correct: [
       ["The list of chores are on the fridge.", "The list of chores is on the fridge.", "The subject is list, not chores. List is singular, so use is."],
       ["She walk to school on Mondays.", "She walks to school on Mondays.", "She is third-person singular, so the present-tense verb needs -s."],
+      ["The collection of shells are on the shelf.", "The collection of shells is on the shelf.", "The subject is collection, which is singular, so use is."],
+      ["There is many reasons to practise.", "There are many reasons to practise.", "The real subject is many reasons, so use are."],
     ],
   },
   articles: {
@@ -109,15 +117,23 @@ const questionPools = {
       ["Can I borrow ___ pencil, please?", ["a", "an", "the", "no article"], "a", "Pencil begins with a consonant sound and is not specific, so use a."],
       ["She wants to be ___ artist.", ["a", "an", "the", "no article"], "an", "Artist begins with a vowel sound, so use an."],
       ["___ Great Barrier Reef is in Australia.", ["A", "An", "The", "No article"], "The", "The is used with the name of this specific natural feature."],
+      ["I saw ___ eagle above the valley.", ["a", "an", "the", "no article"], "an", "Eagle begins with a vowel sound, so use an."],
+      ["Please close ___ front door.", ["a", "an", "the", "no article"], "the", "The front door is a specific door in this context, so use the."],
+      ["He packed ___ sandwich for lunch.", ["a", "an", "the", "no article"], "a", "Sandwich begins with a consonant sound and is not specific, so use a."],
     ],
     fill: [
       ["We waited for ___ hour before the bus arrived.", "an", "Hour begins with a vowel sound because the h is silent."],
       ["Luca found ___ uniform in the lost property box.", "a", "Uniform begins with a /y/ consonant sound, so use a."],
       ["Please pass me ___ red folder on the table.", "the", "The folder is specific because both people know which one it is."],
+      ["We adopted ___ energetic puppy.", "an", "Energetic begins with a vowel sound, so use an."],
+      ["She wore ___ blue jacket to school.", "a", "Blue begins with a consonant sound, so use a."],
+      ["___ sun was warm this morning.", "The", "We use The for the specific sun."],
     ],
     correct: [
       ["Mia is an talented musician.", "Mia is a talented musician.", "Talented begins with a consonant sound, so use a."],
       ["We visited a Australian museum.", "We visited an Australian museum.", "Australian begins with a vowel sound, so use an."],
+      ["He found an useful website.", "He found a useful website.", "Useful begins with a /y/ consonant sound, so use a."],
+      ["She visited a Sydney Opera House.", "She visited the Sydney Opera House.", "The Sydney Opera House is a specific named place, so use the."],
     ],
   },
   "simple-present": {
@@ -127,15 +143,23 @@ const questionPools = {
       ["Leo and Sam ___ chess at lunch.", ["plays", "play", "playing", "played"], "play", "Leo and Sam is plural, so use play without -s."],
       ["My bus ___ at 8:10 each morning.", ["leave", "leaves", "leaving", "left"], "leaves", "Bus is singular, so the verb needs -s."],
       ["The library ___ at 5 pm.", ["close", "closes", "closing", "closed"], "closes", "Library is singular, so use closes for a regular schedule."],
+      ["Jordan ___ basketball twice a week.", ["play", "plays", "playing", "played"], "plays", "Jordan is third-person singular, so use plays."],
+      ["The trains ___ on time most mornings.", ["arrive", "arrives", "arrived", "arriving"], "arrive", "Trains is plural, so use arrive."],
+      ["My teacher ___ us clear instructions.", ["give", "gives", "giving", "gave"], "gives", "Teacher is singular, so use gives."],
     ],
     fill: [
       ["The sun ___ (rise) in the east.", "rises", "This is a fact, and sun is singular, so use rises."],
       ["We ___ (not / watch) television on school nights.", "do not watch", "Use do not + the base verb for a plural subject in the simple present."],
       ["___ your brother ___ (like) spicy food?", "Does, like", "Use Does for he/she/it, followed by the base verb like."],
+      ["A koala ___ (sleep) for many hours.", "sleeps", "Koala is singular, so use sleeps."],
+      ["They ___ (not / need) extra help.", "do not need", "Use do not + the base verb with they."],
+      ["___ your friends ___ (walk) home?", "Do, walk", "Use Do with plural friends, followed by the base verb walk."],
     ],
     correct: [
       ["The kangaroo jump over the fence.", "The kangaroo jumps over the fence.", "Kangaroo is singular, so the verb needs -s."],
       ["Do she practise piano every day?", "Does she practise piano every day?", "Use Does with she in a simple-present question."],
+      ["The river flow through the town.", "The river flows through the town.", "River is singular, so the verb needs -s."],
+      ["Does he likes science?", "Does he like science?", "After Does, use the base verb like."],
     ],
   },
   "simple-past": {
@@ -145,15 +169,23 @@ const questionPools = {
       ["I ___ a rainbow after the storm.", ["see", "saw", "seen", "seeing"], "saw", "Saw is the simple-past form of see."],
       ["They ___ their homework before dinner.", ["do", "does", "did", "doing"], "did", "Did is the simple-past form of do."],
       ["Nora ___ a letter to her cousin.", ["write", "writes", "wrote", "written"], "wrote", "Wrote is the simple-past form of write."],
+      ["We ___ the match on Saturday.", ["win", "won", "winning", "wins"], "won", "Won is the simple-past form of win."],
+      ["Ella ___ her keys at home.", ["leave", "left", "leaves", "leaving"], "left", "Left is the simple-past form of leave."],
+      ["The storm ___ the power last night.", ["cut", "cuts", "cutting", "has cut"], "cut", "Cut has the same spelling in the present and simple past."],
     ],
     fill: [
       ["The class ___ (visit) the science centre on Tuesday.", "visited", "Visit is regular, so add -ed for the simple past."],
       ["Kai ___ (take) the earlier train.", "took", "Took is the irregular past form of take."],
       ["We ___ (not / hear) the bell.", "did not hear", "Use did not + the base verb hear for a negative past sentence."],
+      ["The teacher ___ (explain) the experiment yesterday.", "explained", "Explain is regular, so add -ed for the simple past."],
+      ["I ___ (forget) my lunch this morning.", "forgot", "Forgot is the simple-past form of forget."],
+      ["They ___ (not / finish) the project.", "did not finish", "Use did not + the base verb finish for a negative past sentence."],
     ],
     correct: [
       ["She buyed a notebook yesterday.", "She bought a notebook yesterday.", "Bought is the irregular past form of buy."],
       ["Did you saw the match?", "Did you see the match?", "After Did, use the base verb see, not the past form saw."],
+      ["We goed to the market.", "We went to the market.", "Went is the irregular past form of go."],
+      ["Did she wrote the answer?", "Did she write the answer?", "After Did, use the base verb write."],
     ],
   },
   "present-continuous": {
@@ -163,15 +195,23 @@ const questionPools = {
       ["Look! The baby ___ .", ["smiles", "smiled", "is smiling", "smile"], "is smiling", "Look signals an action happening now: is smiling."],
       ["We ___ for the bus right now.", ["wait", "are waiting", "waited", "is waiting"], "are waiting", "We takes are + verb-ing: are waiting."],
       ["Tom ___ a sandwich in the kitchen.", ["make", "makes", "is making", "made"], "is making", "The sentence describes an action happening now, so use is making."],
+      ["The dog ___ under the table right now.", ["sleeps", "is sleeping", "are sleeping", "slept"], "is sleeping", "Use is + sleeping because the dog is singular and the action is happening now."],
+      ["You ___ very quickly today.", ["speak", "are speaking", "is speaking", "spoke"], "are speaking", "Use are + speaking with you for an action happening now."],
+      ["Why ___ he ___ so loudly?", ["is / laughing", "are / laughing", "does / laugh", "is / laugh"], "is / laughing", "Use is + laughing with he for an action happening now."],
     ],
     fill: [
       ["She ___ (paint) a sunset at the moment.", "is painting", "Use is + painting because she is singular and the action is happening now."],
       ["The children ___ (play) in the garden.", "are playing", "Children is plural, so use are + playing."],
       ["I ___ (not / use) the computer right now.", "am not using", "With I, use am not + the -ing form."],
+      ["The chef ___ (prepare) dinner now.", "is preparing", "Use is + preparing with the singular subject chef."],
+      ["We ___ (wait) outside at the moment.", "are waiting", "Use are + waiting with we."],
+      ["She ___ (not / listen) to music right now.", "is not listening", "Use is not + listening with she."],
     ],
     correct: [
       ["They is carrying their instruments.", "They are carrying their instruments.", "They is plural, so use are carrying."],
       ["I am write an email now.", "I am writing an email now.", "The verb after am needs the -ing form: writing."],
+      ["The birds are fly over the lake.", "The birds are flying over the lake.", "The verb after are needs the -ing form: flying."],
+      ["He am carrying the boxes.", "He is carrying the boxes.", "Use is with he in the present continuous."],
     ],
   },
   "present-perfect": {
@@ -181,15 +221,23 @@ const questionPools = {
       ["Have you ___ your lunch yet?", ["eat", "ate", "eaten", "eating"], "eaten", "The present perfect uses have/has + a past participle: eaten."],
       ["Liam has lived here ___ 2022.", ["for", "since", "yet", "already"], "since", "Use since with a starting point in time, such as 2022."],
       ["They have played tennis ___ two hours.", ["since", "for", "yet", "just"], "for", "Use for with a length of time, such as two hours."],
+      ["I ___ never tried surfing.", ["have", "has", "am", "did"], "have", "Use have with I in the present perfect: have tried."],
+      ["Maya has ___ her project.", ["finish", "finished", "finishing", "finishes"], "finished", "Use has + the past participle finished."],
+      ["Have they ___ the new library yet?", ["visit", "visited", "visiting", "visits"], "visited", "Use have + the past participle visited."],
     ],
     fill: [
       ["I have ___ (write) three pages today.", "written", "Written is the past participle used after have."],
       ["Has Ruby ___ (finish) the puzzle yet?", "finished", "Use has + the past participle finished."],
       ["We have lived in Perth ___ five years.", "for", "Use for with a duration or length of time."],
+      ["She has ___ (choose) a topic.", "chosen", "Chosen is the past participle of choose."],
+      ["We have known each other ___ 2020.", "since", "Use since with a starting point in time."],
+      ["He has worked here ___ three months.", "for", "Use for with a length of time."],
     ],
     correct: [
       ["He have just arrived at school.", "He has just arrived at school.", "He is singular, so use has, not have."],
       ["I have went to the museum already.", "I have gone to the museum already.", "After have, use the past participle gone, not the simple past went."],
+      ["They has already eaten.", "They have already eaten.", "They is plural, so use have."],
+      ["She has saw that movie.", "She has seen that movie.", "After has, use the past participle seen, not saw."],
     ],
   },
   prepositions: {
@@ -199,15 +247,23 @@ const questionPools = {
       ["We visit Nan ___ Sunday.", ["at", "on", "in", "to"], "on", "Use on with days of the week."],
       ["The cat ran ___ the room.", ["through", "at", "on", "between"], "through", "Through shows movement from one side of an inside space to another."],
       ["The shop is ___ the library and the bakery.", ["under", "between", "through", "at"], "between", "Use between for something in the middle of two things."],
+      ["The ball rolled ___ the sofa.", ["under", "at", "to", "between"], "under", "Use under for something below or covered by the sofa."],
+      ["Our holiday starts ___ July.", ["at", "on", "in", "by"], "in", "Use in with months."],
+      ["Walk ___ the bridge carefully.", ["across", "at", "on", "between"], "across", "Across shows movement from one side of the bridge to the other."],
     ],
     fill: [
       ["The birds flew ___ the trees.", "above", "Above shows a higher position than the trees."],
       ["I left my shoes ___ the door.", "by", "By means next to or close to the door."],
       ["We travelled ___ Adelaide ___ Melbourne.", "from, to", "Use from for the starting point and to for the destination."],
+      ["The museum is ___ the station and the park.", "between", "Use between for something in the middle of two places."],
+      ["We arrived ___ Monday morning.", "on", "Use on with a day or date."],
+      ["The rabbit hopped ___ the box.", "into", "Into shows movement from outside to inside."],
     ],
     correct: [
       ["Meet me in 3 pm.", "Meet me at 3 pm.", "Use at with a precise time."],
       ["The poster is at the wall.", "The poster is on the wall.", "Use on for something attached to a surface."],
+      ["I will see you in Friday.", "I will see you on Friday.", "Use on with days of the week."],
+      ["The plane flew on the clouds.", "The plane flew above the clouds.", "Use above to show a higher position than the clouds."],
     ],
   },
   conjunctions: {
@@ -217,15 +273,23 @@ const questionPools = {
       ["It was cold, ___ we wore our jackets.", ["because", "so", "although", "or"], "so", "So introduces the result of it being cold."],
       ["I packed a hat ___ sunscreen.", ["but", "and", "because", "although"], "and", "And joins two things that are both included."],
       ["Although the trail was steep, we ___ reached the lookout.", ["but", "still", "or", "because"], "still", "Still shows that the result happened despite the difficulty."],
+      ["I brought a jumper ___ the evening might be cold.", ["because", "or", "but", "and"], "because", "Because introduces the reason for bringing a jumper."],
+      ["You can stay here ___ come with us.", ["and", "but", "or", "so"], "or", "Or gives a choice between staying and coming."],
+      ["The road was busy, ___ we arrived on time.", ["because", "but", "or", "and"], "but", "But connects the busy road with the contrasting result."],
     ],
     fill: [
       ["Mia wanted to swim, ___ the pool was closed.", "but", "But connects two contrasting ideas."],
       ["Take an umbrella ___ the forecast says rain.", "because", "Because introduces the reason to take an umbrella."],
       ["The team trained hard, ___ they improved.", "so", "So introduces the result of training hard."],
+      ["She practised every day, ___ she improved.", "so", "So introduces the result of practising every day."],
+      ["We stayed home ___ the weather was stormy.", "because", "Because introduces the reason for staying home."],
+      ["I like swimming, ___ my brother prefers cycling.", "but", "But connects two contrasting preferences."],
     ],
     correct: [
       ["I was tired because I went to bed early.", "I went to bed early because I was tired.", "Because should introduce the reason, not the result, in this sentence."],
       ["Although it was sunny but we took a jacket.", "Although it was sunny, we took a jacket.", "Although already shows contrast, so do not add but as well."],
+      ["He was hungry, because he made a sandwich.", "He made a sandwich because he was hungry.", "Because should introduce the reason, so put the result first."],
+      ["You may choose tea and juice.", "You may choose tea or juice.", "Or is used when someone must choose between two options."],
     ],
   },
 };
@@ -319,11 +383,12 @@ function questionFromPool(topic, subSkill, index, type, source) {
 
 function buildQuestionBank() {
   const bank = [];
+  const questionsPerSkill = 18;
   topics.forEach((topic) => {
     topic.subSkills.forEach((subSkill, skillIndex) => {
       const pool = questionPools[topic.family];
-      for (let i = 0; i < 10; i += 1) {
-        const type = i < 5 ? "multiple-choice" : i < 8 ? "fill-blank" : "correct-sentence";
+      for (let i = 0; i < questionsPerSkill; i += 1) {
+        const type = i < 8 ? "multiple-choice" : i < 14 ? "fill-blank" : "correct-sentence";
         const sourcePool = type === "multiple-choice" ? pool.multiple : type === "fill-blank" ? pool.fill : pool.correct;
         const source = sourcePool[(i + skillIndex) % sourcePool.length];
         bank.push(questionFromPool(topic, subSkill, (skillIndex * 10) + i, type, source));
@@ -580,6 +645,15 @@ function selectQuestions(mode, topicId = null, skill = null, questionCount = 10,
   return [...fresh, ...fallback].slice(0, questionCount).map((question) => question.id);
 }
 
+function attemptedIdsForSkills(skills) {
+  const skillSet = new Set(skills);
+  return state.attempts.filter((attempt) => skillSet.has(skillKey(attempt.topic, attempt.subSkill))).map((attempt) => attempt.questionId);
+}
+
+function attemptedIdsForSkill(skill) {
+  return attemptedIdsForSkills([skill]);
+}
+
 function beginPracticeQueue(mode, queue) {
   const uniqueQueue = [...new Set(queue)].filter((questionId) => questionBank.some((question) => question.id === questionId)).slice(0, 10);
   state.practice = { ...baseState().practice, mode, queue: uniqueQueue, sessionAnswers: [] };
@@ -594,13 +668,13 @@ function sessionWrongAnswers() {
   return (state.practice.sessionAnswers || []).filter((answer) => !answer.isCorrect);
 }
 function selectSimilarQuestions(wrongAnswers, questionCount = 5) {
-  const wrongQuestionIds = new Set(wrongAnswers.map((answer) => answer.questionId));
   const skills = [...new Set(wrongAnswers.map((answer) => {
     const question = questionBank.find((item) => item.id === answer.questionId);
     return question ? skillKey(question.topic, question.subSkill) : null;
   }).filter(Boolean))];
   if (!skills.length) return selectQuestions("weak", null, null, questionCount);
-  const groups = skills.map((skill) => selectQuestions("skill", null, skill, 10, wrongQuestionIds));
+  const excludedIds = attemptedIdsForSkills(skills);
+  const groups = skills.map((skill) => selectQuestions("skill", null, skill, 10, excludedIds));
   const similar = [];
   for (let index = 0; similar.length < questionCount; index += 1) {
     let added = false;
@@ -895,11 +969,11 @@ app.addEventListener("click", (event) => {
   if (action === "start-topic") { const quick = target.dataset.mode === "quick"; beginPractice(quick ? "quick" : "topic", target.dataset.topic, null, quick ? 1 : 10); return; }
   if (action === "select-topic") { state.selectedTopic = target.dataset.topic; saveState(); renderApp(); return; }
   if (action === "learn-topic") { state.selectedTopic = target.dataset.topic; state.view = "learn"; saveState(); renderApp(); return; }
-  if (action === "practice-skill") { beginPractice("skill", null, target.dataset.skill, 5, state.mistakes.filter((mistake) => skillKey(mistake.topic, mistake.subSkill) === target.dataset.skill).map((mistake) => mistake.questionId)); return; }
+  if (action === "practice-skill") { beginPractice("similar", null, target.dataset.skill, 5, attemptedIdsForSkill(target.dataset.skill)); return; }
   if (action === "retry-mistake") { beginPracticeQueue("retry", [target.dataset.questionId]); return; }
   if (action === "review-skill") { beginPractice("review", null, target.dataset.skill); return; }
   if (action === "next-question") { nextPracticeQuestion(); return; }
-  if (action === "try-similar") { beginPractice("similar", null, target.dataset.skill, 5, [target.dataset.questionId]); return; }
+  if (action === "try-similar") { beginPractice("similar", null, target.dataset.skill, 5, attemptedIdsForSkill(target.dataset.skill)); return; }
   if (action === "toggle-chinese") { state.practice.showChinese = !state.practice.showChinese; renderApp(); return; }
   if (action === "review-mistake") { const mistake = state.mistakes.find((item) => item.id === target.dataset.id); if (mistake) { mistake.reviewed = true; saveState(); renderApp(); } }
 });
