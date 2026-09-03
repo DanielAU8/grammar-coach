@@ -230,6 +230,59 @@ const questionPools = {
   },
 };
 
+const chineseSubSkills = {
+  "Singular & plural subjects": "单数和复数主语",
+  "Tricky subjects": "容易混淆的主语",
+  "There is / There are": "There is / There are 的用法",
+  "a or an": "a 和 an 的选择",
+  "Using the": "the 的用法",
+  "No article": "零冠词的用法",
+  "Third-person -s": "第三人称单数的 -s",
+  "Questions & negatives": "疑问句和否定句",
+  "Facts and routines": "事实和日常习惯",
+  "Regular past verbs": "规则动词的过去式",
+  "Irregular past verbs": "不规则动词的过去式",
+  "Past questions": "过去时疑问句",
+  "am / is / are": "am / is / are 的选择",
+  "Adding -ing": "动词加 -ing",
+  "Now vs every day": "正在发生和日常习惯的区别",
+  "have vs has": "have 和 has 的选择",
+  "Past participles": "过去分词",
+  "since / for / already / yet": "since / for / already / yet 的用法",
+  Place: "地点介词",
+  Time: "时间介词",
+  Movement: "移动方向介词",
+  "and / but / or": "and / but / or 的用法",
+  "because / so": "because / so 的用法",
+  "although / while": "although / while 的用法",
+};
+
+const chineseTopicRules = {
+  "subject-verb": "先找出真正的主语，再让动词和主语保持单复数一致。",
+  articles: "a 用在辅音音素开头的单数名词前，an 用在元音音素开头的单数名词前，the 用来表示特定的人或事物。",
+  "simple-present": "一般现在时用于表达事实、习惯和规律；第三人称单数主语后，动词通常要加 -s 或 -es。",
+  "simple-past": "一般过去时用于表达已经完成的动作；规则动词通常加 -ed，不规则动词需要记住它的特殊形式。",
+  "present-continuous": "现在进行时用 am、is 或 are 加动词 -ing 形式，表示现在正在发生的动作。",
+  "present-perfect": "现在完成时用 have 或 has 加过去分词，表示过去发生但与现在有关的动作或经历。",
+  prepositions: "介词用来表达地点、时间、方向或位置关系，要根据句子的意思选择。",
+  conjunctions: "连词用来连接词语或句子，要根据前后两部分的逻辑关系选择。",
+};
+
+function buildChineseExplanation(topic, subSkill, questionType, correctAnswer) {
+  const skill = chineseSubSkills[subSkill] || subSkill;
+  const answer = `正确答案是“${correctAnswer}”。`;
+  const rule = chineseTopicRules[topic.family];
+  if (topic.family === "subject-verb") return `这道题考查“${skill}”。${answer}${rule} 不要只看动词旁边的名词，要先确认整个句子的真正主语。`;
+  if (topic.family === "articles") return `这道题考查“${skill}”。${answer}${rule} 选择 a 还是 an 要听开头的声音，而不是只看第一个字母；表示特定事物时要用 the。`;
+  if (topic.family === "simple-present") return `这道题考查“${skill}”。${answer}${rule} 如果主语是 he、she、it 或一个单数名词，动词要注意第三人称单数形式；疑问句和否定句中则要使用助动词。`;
+  if (topic.family === "simple-past") return `这道题考查“${skill}”。${answer}${rule} 看到 yesterday、last week 等过去时间提示时，要使用过去式；Did 后面要回到动词原形。`;
+  if (topic.family === "present-continuous") return `这道题考查“${skill}”。${answer}${rule} 先根据主语选择 am、is 或 are，再把主要动词变成 -ing 形式。`;
+  if (topic.family === "present-perfect") return `这道题考查“${skill}”。${answer}${rule} I、we、you、they 通常搭配 have，he、she、it 通常搭配 has；since 接起点，for 接持续时间。`;
+  if (topic.family === "prepositions") return `这道题考查“${skill}”。${answer}${rule} 先判断句子表达的是地点、具体时间、日期还是移动方向，再选择最准确的介词。`;
+  if (topic.family === "conjunctions") return `这道题考查“${skill}”。${answer}${rule} because 表示原因，so 表示结果，but 和 although 表示转折，and 表示补充，or 表示选择。`;
+  return `这道题考查“${skill}”。${answer}${rule}`;
+}
+
 function clone(value) { return JSON.parse(JSON.stringify(value)); }
 function escapeHTML(value) {
   return String(value ?? "").replaceAll("&", "&amp;").replaceAll("<", "&lt;").replaceAll(">", "&gt;").replaceAll('"', "&quot;").replaceAll("'", "&#039;");
@@ -258,7 +311,7 @@ function questionFromPool(topic, subSkill, index, type, source) {
     options: base.options,
     correctAnswer: base.correctAnswer,
     explanation: base.explanation,
-    chineseExplanation: `这道题考查“${subSkill}”。${base.explanation}`,
+    chineseExplanation: buildChineseExplanation(topic, subSkill, type, base.correctAnswer),
     commonErrorType: type === "correct-sentence" ? "Editing the sentence" : topic.id === "present-perfect" ? "Tense confusion" : "Form or agreement",
     exampleRule: topic.rule,
   };
