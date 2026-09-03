@@ -351,7 +351,7 @@ function createDemoState() {
     demoAttemptCounter[question.id] = (demoAttemptCounter[question.id] || 0) + 1;
     if (!isCorrect && demo.mistakes.length < 9) demo.mistakes.push(makeMistake(question, attempt, false));
   });
-  demo.profile = { name: "Alex", xp: 1240, streak: 6, lastActiveDate: TODAY(), lastLessonTopic: "present-perfect", lessonsCompleted: 7 };
+  demo.profile = { name: "George", xp: 1240, streak: 6, lastActiveDate: TODAY(), lastLessonTopic: "present-perfect", lessonsCompleted: 7 };
   const weak = skillKey("present-perfect", "since / for / already / yet");
   demo.reviews[weak] = { intervalIndex: 0, nextReview: TODAY(), consecutiveCorrect: 0, lastReviewed: dateDaysAgo(4) };
   const strong = skillKey("prepositions", "Time");
@@ -383,20 +383,27 @@ function loadAccountStore() {
   try {
     const savedAccounts = JSON.parse(localStorage.getItem(ACCOUNTS_STORAGE_KEY) || "null");
     if (savedAccounts?.accounts && typeof savedAccounts.accounts === "object") {
-      const accounts = Object.fromEntries(Object.entries(savedAccounts.accounts).map(([id, value]) => [id, normaliseStudentState(value, value?.mode || "fresh", value?.profile?.name || id)]));
+      const builtInNames = { alex: "George", carina: "Carina", george: "Daniel" };
+      const accounts = Object.fromEntries(Object.entries(savedAccounts.accounts).map(([id, value]) => {
+        const account = normaliseStudentState(value, value?.mode || "fresh", builtInNames[id] || value?.profile?.name || id);
+        if (builtInNames[id]) account.profile.name = builtInNames[id];
+        return [id, account];
+      }));
       const activeId = accounts[savedAccounts.activeId] ? savedAccounts.activeId : Object.keys(accounts)[0];
       return { activeId, accounts };
     }
     const legacy = JSON.parse(localStorage.getItem(STORAGE_KEY) || "null");
-    const alex = legacy ? normaliseStudentState(legacy, legacy.mode || "demo", "Alex") : createDemoState();
+    const alex = legacy ? normaliseStudentState(legacy, legacy.mode || "demo", "George") : createDemoState();
+    alex.profile.name = "George";
     const carina = freshState(); carina.profile.name = "Carina";
-    const george = freshState(); george.profile.name = "George";
-    return { activeId: "alex", accounts: { alex: alex, carina: carina, george: george } };
+    const daniel = freshState(); daniel.profile.name = "Daniel";
+    return { activeId: "alex", accounts: { alex: alex, carina: carina, george: daniel } };
   } catch (error) {
     const alex = createDemoState();
+    alex.profile.name = "George";
     const carina = freshState(); carina.profile.name = "Carina";
-    const george = freshState(); george.profile.name = "George";
-    return { activeId: "alex", accounts: { alex: alex, carina: carina, george: george } };
+    const daniel = freshState(); daniel.profile.name = "Daniel";
+    return { activeId: "alex", accounts: { alex: alex, carina: carina, george: daniel } };
   }
 }
 const accountStore = loadAccountStore();
