@@ -515,9 +515,10 @@ function updateStreak() {
 }
 function nextPracticeQuestion() {
   if (!state.practice.answered) return;
-  if (state.practice.index >= state.practice.queue.length - 1) { state.practice.completed = true; state.profile.xp += state.practice.mode === "weak" ? 30 : 50; saveState(); renderApp(); return; }
+  if (state.practice.index >= state.practice.queue.length - 1) { state.practice.completed = true; state.profile.xp += sessionBonus(); saveState(); renderApp(); return; }
   state.practice.index += 1; state.practice.answered = false; state.practice.lastAnswer = ""; state.practice.showChinese = false; state.practice.error = ""; saveState(); renderApp();
 }
+function sessionBonus() { return state.practice.queue.length >= 10 ? (state.practice.mode === "weak" ? 30 : 50) : 0; }
 
 function icon(name) {
   const icons = { home: "⌂", learn: "◈", practice: "✦", weak: "↘", mistakes: "⌁", review: "↻", progress: "▥", report: "◒" };
@@ -580,7 +581,7 @@ function renderQuestionInput(question) {
 }
 function renderPractice() {
   if (!state.practice.queue.length) beginPractice("mixed");
-  if (state.practice.completed) return `${pageIntro("Practice complete", "Nice work — you showed up for your grammar.", `You answered ${state.practice.queue.length} questions and earned ${state.practice.score * 10 + (state.practice.mode === "weak" ? 30 : 50)} XP from this session.`)}<section class="completion-card"><div class="completion-icon">✓</div><h2>Session finished</h2><p>Your next review is already being scheduled from the answers you gave.</p><div class="completion-stats"><div><strong>${state.practice.score}/${state.practice.queue.length}</strong><span>correct</span></div><div><strong>+${state.practice.score * 10 + (state.practice.mode === "weak" ? 30 : 50)}</strong><span>XP earned</span></div><div><strong>${overallAccuracy()}%</strong><span>overall accuracy</span></div></div><button class="button button-primary" data-nav="home">Back to home</button> <button class="button button-soft" data-action="start-weak">Practise weak areas again</button></section>`;
+  if (state.practice.completed) return `${pageIntro("Practice complete", "Nice work — you showed up for your grammar.", `You answered ${state.practice.queue.length} questions and earned ${state.practice.score * 10 + sessionBonus()} XP from this session.`)}<section class="completion-card"><div class="completion-icon">✓</div><h2>Session finished</h2><p>Your next review is already being scheduled from the answers you gave.</p><div class="completion-stats"><div><strong>${state.practice.score}/${state.practice.queue.length}</strong><span>correct</span></div><div><strong>+${state.practice.score * 10 + sessionBonus()}</strong><span>XP earned</span></div><div><strong>${overallAccuracy()}%</strong><span>overall accuracy</span></div></div><button class="button button-primary" data-nav="home">Back to home</button> <button class="button button-soft" data-action="start-weak">Practise weak areas again</button></section>`;
   const question = currentQuestion();
   if (!question) { state.practice.completed = true; return renderPractice(); }
   const topic = getTopic(question.topic);
