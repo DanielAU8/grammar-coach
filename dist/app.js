@@ -648,9 +648,13 @@ const app = document.querySelector("#app");
 app.addEventListener("click", (event) => {
   const target = event.target.closest("[data-nav], [data-action]");
   if (!target) return;
-  event.preventDefault();
   const nav = target.dataset.nav;
   const action = target.dataset.action;
+  // The question form carries a data-action for submit handling, but its
+  // children still need their native click behaviour (radio selection and
+  // text-input focus). Do not cancel those clicks at the document level.
+  if (action === "submit-answer") return;
+  event.preventDefault();
   if (nav) { state.view = nav; document.querySelector("#app-frame")?.classList.remove("sidebar-open"); if (nav === "learn" && !state.selectedTopic) state.selectedTopic = "subject-verb"; renderApp(); return; }
   if (action === "toggle-sidebar") { document.querySelector("#app-frame")?.classList.toggle("sidebar-open"); return; }
   if (action === "mode") { const nextMode = target.dataset.mode; Object.assign(state, nextMode === "demo" ? createDemoState() : freshState()); state.mode = nextMode; saveState(); renderApp(); return; }
