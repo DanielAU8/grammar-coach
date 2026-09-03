@@ -354,6 +354,23 @@ function escapeHTML(value) {
 function normalise(value) {
   return String(value ?? "").trim().toLowerCase().replace(/[.!?,;:]+$/g, "").replace(/\s+/g, " ");
 }
+function normaliseSentence(value) {
+  return String(value ?? "").trim().toLowerCase().replace(/[.!?,;:]+/g, "").replace(/\s+/g, " ");
+}
+function answerMatches(question, answer) {
+  if (normalise(answer) === normalise(question.correctAnswer)) return true;
+  return question.questionType === "correct-sentence" && normaliseSentence(answer) === normaliseSentence(question.correctAnswer);
+}
+function answerDifferenceHint(question, answer) {
+  if (question.questionType !== "correct-sentence") return "";
+  const userWords = normaliseSentence(answer).split(" ").filter(Boolean);
+  const correctWords = normaliseSentence(question.correctAnswer).split(" ").filter(Boolean);
+  const firstDifference = userWords.findIndex((word, index) => word !== correctWords[index]);
+  if (userWords.length === correctWords.length && firstDifference >= 0) {
+    return `<p class="answer-check"><strong>Check this word:</strong> You typed “${escapeHTML(userWords[firstDifference])}”, but this sentence needs “${escapeHTML(correctWords[firstDifference])}”.</p>`;
+  }
+  return `<p class="answer-check"><strong>Check the sentence:</strong> Compare each word with the correct answer below.</p>`;
+}
 function slug(value) { return String(value).toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, ""); }
 function skillKey(topicId, subSkill) { return `${topicId}::${subSkill}`; }
 function getTopic(topicId) { return topics.find((topic) => topic.id === topicId) || topics[0]; }
@@ -714,7 +731,7 @@ function submitAnswer(form) {
   const formData = new FormData(form);
   const answer = String(formData.get("answer") || "").trim();
   if (!answer) { state.practice.error = "Choose or type an answer before checking."; renderApp(); return; }
-  const isCorrect = normalise(answer) === normalise(question.correctAnswer);
+  const isCorrect = answerMatches(question, answer);
   const attempt = { questionId: question.id, topic: question.topic, subSkill: question.subSkill, difficulty: question.difficulty, questionType: question.questionType, userAnswer: answer, isCorrect, timestamp: new Date().toISOString(), attemptNumber: state.attempts.filter((item) => item.questionId === question.id).length + 1, confidence: null, isReview: state.practice.mode === "review" };
   state.attempts.push(attempt);
   if (isCorrect) { state.practice.score += 1; state.profile.xp += 10; }
@@ -888,8 +905,8 @@ function renderPractice() {
   return `<div class="practice-shell">${pageIntro(practiceModeLabel(state.practice.mode), `${topic.title}`, `Question ${state.practice.index + 1} of ${state.practice.queue.length} · ${question.subSkill}`)}<div class="practice-header"><div class="practice-progress"><strong>${state.practice.score}</strong> correct so far</div><span class="tag orange">${question.questionType === "multiple-choice" ? "Multiple choice" : question.questionType === "fill-blank" ? "Fill in the blank" : "Correct the sentence"}</span></div><section class="question-card"><div class="question-meta"><span class="tag">${question.subSkill}</span><span class="tag neutral">${question.difficulty}</span><span class="tag neutral">${question.yearLevel}</span></div><h2>${escapeHTML(question.prompt)}</h2><form id="question-form" data-action="submit-answer">${renderQuestionInput(question)}<div class="question-footer"><span class="hint">Take your time — accuracy matters more than speed.</span>${state.practice.answered ? `<button class="button button-dark" type="button" data-action="next-question">${state.practice.index === state.practice.queue.length - 1 ? "Finish session" : "Next question"} <span aria-hidden="true">→</span></button>` : `<button class="button button-primary" type="submit">Check answer <span aria-hidden="true">→</span></button>`}</div>${state.practice.error ? `<p class="feedback is-wrong" style="margin-bottom:0;padding:11px;font-size:12px;">${state.practice.error}</p>` : ""}</form>${state.practice.answered ? renderFeedback(question) : ""}</section></div>`;
 }
 function renderFeedback(question) {
-  const correct = normalise(state.practice.lastAnswer) === normalise(question.correctAnswer);
-  return `<div class="feedback ${correct ? "is-correct" : "is-wrong"}"><div class="feedback-heading"><h3>${correct ? "Correct — nice thinking." : "Not quite yet. Now you know why."}</h3><span class="status-pill ${correct ? "strong" : "priority"}">${correct ? "+10 XP" : "Learn from this"}</span></div><p>${escapeHTML(question.explanation)}</p><div class="feedback-details"><div class="feedback-detail"><span>Your answer</span><strong>${escapeHTML(state.practice.lastAnswer)}</strong></div><div class="feedback-detail"><span>Correct answer</span><strong>${escapeHTML(question.correctAnswer)}</strong></div></div><div class="feedback-actions"><button class="button button-soft button-small" type="button" data-action="try-similar" data-skill="${skillKey(question.topic, question.subSkill)}" data-question-id="${question.id}">Try similar questions · 5 new</button><button class="button button-ghost button-small" type="button" data-action="toggle-chinese">${state.practice.showChinese ? "Hide 中文解释" : "中文解释"}</button></div>${state.practice.showChinese ? `<p class="chinese-note">${escapeHTML(question.chineseExplanation)}</p>` : ""}</div>`;
+  const correct = answerMatches(question, state.practice.lastAnswer);
+  return `<div class="feedback ${correct ? "is-correct" : "is-wrong"}"><div class="feedback-heading"><h3>${correct ? "Correct — nice thinking." : "Not quite yet. Now you know why."}</h3><span class="status-pill ${correct ? "strong" : "priority"}">${correct ? "+10 XP" : "Learn from this"}</span></div><p>${escapeHTML(question.explanation)}</p>${correct ? "" : answerDifferenceHint(question, state.practice.lastAnswer)}<div class="feedback-details"><div class="feedback-detail"><span>Your answer</span><strong>${escapeHTML(state.practice.lastAnswer)}</strong></div><div class="feedback-detail"><span>Correct answer</span><strong>${escapeHTML(question.correctAnswer)}</strong></div></div><div class="feedback-actions"><button class="button button-soft button-small" type="button" data-action="try-similar" data-skill="${skillKey(question.topic, question.subSkill)}" data-question-id="${question.id}">Try similar questions · 5 new</button><button class="button button-ghost button-small" type="button" data-action="toggle-chinese">${state.practice.showChinese ? "Hide 中文解释" : "中文解释"}</button></div>${state.practice.showChinese ? `<p class="chinese-note">${escapeHTML(question.chineseExplanation)}</p>` : ""}</div>`;
 }
 
 function renderWeakAreas() {

@@ -22,6 +22,8 @@ Progress is stored in `localStorage` under `grammar-coach-accounts-v1`. The buil
 
 After a practice set, the learner can either redo only the incorrect questions or practise five new questions from the same grammar skills. The Mistake Book's `Practise this skill` action also creates a five-question set while excluding questions already attempted by the current account where possible. The bank now contains 18 questions per sub-skill (432 generated questions total), and similar practice keeps choosing unseen questions until that skill's bank has been used.
 
+Correct-sentence answers ignore harmless differences in capitalisation and punctuation, but still require every word to be correct. When a sentence is wrong, the feedback highlights the first word that differs from the expected answer.
+
 ## Publish with GitHub Pages
 
 The repository includes `.github/workflows/pages.yml`. After pushing it to GitHub, open the repository's **Settings → Pages**, choose **GitHub Actions** if GitHub asks for a source, and wait for the workflow to finish. The family can then use the Pages URL shown in the workflow deployment, usually:
