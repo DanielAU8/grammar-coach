@@ -283,7 +283,7 @@ function buildQuestionBank() {
 const questionBank = buildQuestionBank();
 
 function blankProfile() {
-  return { name: "Alex", xp: 0, streak: 0, lastActiveDate: null, lastLessonTopic: "subject-verb", lessonsCompleted: 0 };
+  return { name: "George", xp: 0, streak: 0, lastActiveDate: null, lastLessonTopic: "subject-verb", lessonsCompleted: 0 };
 }
 function baseState(mode = "fresh") {
   return {
@@ -366,7 +366,7 @@ function makeAttemptWithCount(question, isCorrect, timestamp, isReview) {
 }
 function freshState() { return baseState("fresh"); }
 
-function normaliseStudentState(saved, fallbackMode = "fresh", fallbackName = "Alex") {
+function normaliseStudentState(saved, fallbackMode = "fresh", fallbackName = "George") {
   const defaults = baseState(fallbackMode);
   const source = saved && typeof saved === "object" ? saved : {};
   return {
@@ -408,7 +408,7 @@ function loadAccountStore() {
 }
 const accountStore = loadAccountStore();
 let activeAccountId = accountStore.activeId || "alex";
-let state = normaliseStudentState(accountStore.accounts[activeAccountId] || createDemoState(), "demo", "Alex");
+let state = normaliseStudentState(accountStore.accounts[activeAccountId] || createDemoState(), "demo", "George");
 function saveState() {
   const payload = { ...state, practice: { ...state.practice, queue: state.practice.queue.slice(0, 10) } };
   accountStore.activeId = activeAccountId;
